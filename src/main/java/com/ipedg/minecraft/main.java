@@ -5,14 +5,18 @@ import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.NetworkManager;
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher;
 import org.bukkit.Bukkit;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +24,6 @@ import java.util.Map;
 public class main extends JavaPlugin implements Listener {
     private List<ModData> modDataList = new ArrayList<>();
     private Boolean OpenSystem = false;
-    private Boolean Debug = false;
     private String PlayerMsg;
     @Override
     public void onEnable() {
@@ -47,8 +50,35 @@ public class main extends JavaPlugin implements Listener {
             modDataList.add(new ModData(split[0],split[1]));
         }
         OpenSystem = getConfig().getBoolean("OpenSystem");
-        Debug = getConfig().getBoolean("Debug");
         PlayerMsg = getConfig().getString("Msg");
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (sender instanceof Player&&sender.isOp()&&args.length==1){
+            if (args[0].equalsIgnoreCase("save")){
+                CraftPlayer player = (CraftPlayer) sender;
+                EntityPlayerMP handle = player.getHandle();
+                modDataList.clear();
+                modDataList = getPlayerMods(handle);
+                List<String> modlist = new ArrayList<>();
+                for (ModData d:modDataList){
+                    player.sendMessage(d.getName()+"|"+d.getVersion());
+                    modlist.add(d.getName()+"|"+d.getVersion());
+                }
+                getConfig().set("ModList",modlist);
+                try {
+                    getConfig().save(new File(getDataFolder(),"config.yml"));
+                    sender.sendMessage("保存成功");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }else if (args[0].equalsIgnoreCase("reload")){
+                loadConfig();
+                sender.sendMessage("重载成功");
+            }
+        }
+        return super.onCommand(sender, command, label, args);
     }
 
     @EventHandler
@@ -57,9 +87,6 @@ public class main extends JavaPlugin implements Listener {
         EntityPlayerMP handle = player.getHandle();
         List<ModData> playerMods = getPlayerMods(handle);
         for (ModData mod:playerMods){
-            if (Debug){
-                System.out.print(mod.getName()+"|"+mod.getVersion());
-            }
             if (OpenSystem){
                 if (!modDataList.contains(mod)){
                     player.kickPlayer(PlayerMsg);
