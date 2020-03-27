@@ -88,6 +88,7 @@ public class main extends JavaPlugin implements Listener {
         List<ModData> playerMods = getPlayerMods(handle);
         for (ModData mod:playerMods){
             if (OpenSystem){
+                //System.out.print(mod.getName()+","+mod.getVersion());
                 if (!modDataList.contains(mod)){
                     player.kickPlayer(PlayerMsg);
                 }
